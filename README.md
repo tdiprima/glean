@@ -91,3 +91,7 @@ schema and a `run()` function, register it, done.
 ## License
 
 MIT. See `LICENSE`.
+
+<!-- more collectors: news API, court records, Glassdoor sentiment, LinkedIn-public -->
+
+<br>

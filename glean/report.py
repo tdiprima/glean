@@ -11,7 +11,12 @@ def _bullet_sources(urls: list[str]) -> str:
 
 
 def to_markdown(report: dict, *, mode: str, target: str, purpose: str | None) -> str:
-    """Build a markdown document from the report object."""
+    """Build a markdown document from the report object.
+
+    report must be a validated dict matching REPORT_SCHEMA — all required keys
+    (summary, findings, red_flags, recommendation, sources) must be present.
+    Raises KeyError if any required key is missing.
+    """
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     lines = [
@@ -29,29 +34,29 @@ def to_markdown(report: dict, *, mode: str, target: str, purpose: str | None) ->
         "",
         "## Summary",
         "",
-        report.get("summary", "_(none)_"),
+        report["summary"],
         "",
         "## Findings",
         "",
     ]
 
-    findings = report.get("findings", [])
+    findings = report["findings"]
     if findings:
         for item in findings:
             lines.append(
-                f"- **[{item.get('confidence', '?')}]** {item.get('claim', '')}  "
-                f"\n  Sources: {_bullet_sources(item.get('source_urls', []))}"
+                f"- **[{item['confidence']}]** {item['claim']}  "
+                f"\n  Sources: {_bullet_sources(item['source_urls'])}"
             )
     else:
         lines.append("_No findings._")
 
     lines += ["", "## Red flags", ""]
-    red_flags = report.get("red_flags", [])
+    red_flags = report["red_flags"]
     if red_flags:
         for item in red_flags:
             lines.append(
-                f"- **[{item.get('severity', '?')}]** {item.get('concern', '')}  "
-                f"\n  Sources: {_bullet_sources(item.get('source_urls', []))}"
+                f"- **[{item['severity']}]** {item['concern']}  "
+                f"\n  Sources: {_bullet_sources(item['source_urls'])}"
             )
     else:
         lines.append("_None identified._")
@@ -60,12 +65,12 @@ def to_markdown(report: dict, *, mode: str, target: str, purpose: str | None) ->
         "",
         "## Recommendation",
         "",
-        report.get("recommendation", "_(none)_"),
+        report["recommendation"],
         "",
         "## Sources",
         "",
     ]
-    sources = report.get("sources", [])
+    sources = report["sources"]
     if sources:
         lines += [f"- {url}" for url in sources]
     else:
