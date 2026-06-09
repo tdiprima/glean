@@ -1,5 +1,7 @@
 """System prompts for each mode. Includes the LLM-side ethics layer."""
 
+from typing import Callable
+
 _ETHICS_LAYER = """
 Ethical rules you must follow:
 - Use only the public information returned by your tools. Do not invent facts.
@@ -40,12 +42,24 @@ Plan your searches, call tools as needed, then synthesize a sourced report.
 """
 
 
+def _company_base(target: str, purpose: str | None) -> str:
+    return _COMPANY
+
+
+def _person_base(target: str, purpose: str | None) -> str:
+    return _PERSON.format(purpose=purpose or "(unspecified)")
+
+
+_MODE_BUILDERS: dict[str, Callable[[str, str | None], str]] = {
+    "company": _company_base,
+    "person": _person_base,
+}
+
+
 def system_prompt(mode: str, target: str, purpose: str | None) -> str:
     """Build the system prompt for the given mode and target."""
-    if mode == "company":
-        base = _COMPANY
-    elif mode == "person":
-        base = _PERSON.format(purpose=purpose or "(unspecified)")
-    else:
-        raise ValueError(f"Unknown mode: {mode}")
+    builder = _MODE_BUILDERS.get(mode)
+    if builder is None:
+        raise ValueError(f"Unknown mode: {mode!r}")
+    base = builder(target, purpose)
     return f"{base}\n\nTarget: {target}\n{_ETHICS_LAYER}"
