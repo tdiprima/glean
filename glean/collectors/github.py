@@ -5,7 +5,6 @@ Only public data is fetched.
 """
 
 import logging
-import os
 
 import requests
 
@@ -37,22 +36,21 @@ TOOL = {
 }
 
 
-def _headers() -> dict[str, str]:
+def _headers(github_token: str | None) -> dict[str, str]:
     """Build request headers, including auth only if a token is present."""
     headers = {"Accept": "application/vnd.github+json", "User-Agent": "glean-osint"}
-    token = os.environ.get("GITHUB_TOKEN", "").strip()
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
+    if github_token:
+        headers["Authorization"] = f"Bearer {github_token}"
     return headers
 
 
-def run(username: str) -> str:
+def run(username: str, *, github_token: str | None = None) -> str:
     """Fetch a public GitHub profile and top repos. Returns text or an error."""
     handle = (username or "").strip().lstrip("@")
     if not handle:
         return "ERROR: empty username."
 
-    headers = _headers()
+    headers = _headers(github_token)
     try:
         user_resp = requests.get(
             f"{_API}/users/{handle}", headers=headers, timeout=_TIMEOUT

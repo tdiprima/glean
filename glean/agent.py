@@ -3,7 +3,6 @@
 import json
 import logging
 
-from glean.collectors import DISPATCH, TOOLS
 from glean.llm import LLM
 from glean.prompts import system_prompt
 from glean.schemas import REPORT_SCHEMA
@@ -17,9 +16,9 @@ _FINAL_INSTRUCTION = (
 )
 
 
-def _dispatch_tool(name: str, raw_args: str) -> str:
+def _dispatch_tool(name: str, raw_args: str, dispatch: dict) -> str:
     """Execute one collector by name. Returns text for the model."""
-    runner = DISPATCH.get(name)
+    runner = dispatch.get(name)
     if runner is None:
         return f"ERROR: unknown tool {name!r}."
     try:
@@ -41,6 +40,8 @@ def investigate(
     target: str,
     purpose: str | None,
     max_steps: int,
+    dispatch: dict,
+    tools: list,
 ) -> tuple[dict, int]:
     """Run the full investigation. Returns (report_dict, steps_taken)."""
     messages: list[dict] = [
@@ -50,7 +51,7 @@ def investigate(
 
     steps = 0
     for steps in range(1, max_steps + 1):
-        message = llm.step(messages, TOOLS)
+        message = llm.step(messages, tools)
 
         if not message.tool_calls:
             # Model answered without (more) tools; move to structured report.
@@ -77,7 +78,7 @@ def investigate(
         )
 
         for call in message.tool_calls:
-            result = _dispatch_tool(call.function.name, call.function.arguments)
+            result = _dispatch_tool(call.function.name, call.function.arguments, dispatch)
             logger.info("tool %s -> %d chars", call.function.name, len(result))
             messages.append(
                 {

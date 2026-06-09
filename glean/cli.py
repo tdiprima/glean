@@ -4,8 +4,10 @@ import argparse
 import logging
 import sys
 
-from glean import audit, ethics, report
+from glean import ethics, report
 from glean.agent import investigate
+from glean.audit import Auditor
+from glean.collectors import build as build_collectors
 from glean.config import ConfigError, load_config
 from glean.llm import LLM
 
@@ -54,14 +56,14 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Configuration error: {exc}", file=sys.stderr)
         return 2
 
+    auditor = Auditor(config.db_path)
+
     # Ethics gate — refuse disallowed targets before any collection runs.
     try:
         ethics.check(args.mode, args.target, args.purpose)
     except ethics.EthicsViolation as exc:
         print(str(exc), file=sys.stderr)
-        audit.init_db(config.db_path)
-        audit.record(
-            config.db_path,
+        auditor.record(
             mode=args.mode,
             target=args.target,
             purpose=args.purpose,
@@ -70,8 +72,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 3
 
-    audit.init_db(config.db_path)
     llm = LLM(api_key=config.openai_api_key, model=config.model)
+    dispatch, tools = build_collectors(config)
 
     try:
         data, steps = investigate(
@@ -80,11 +82,12 @@ def main(argv: list[str] | None = None) -> int:
             target=args.target,
             purpose=args.purpose,
             max_steps=config.max_steps,
+            dispatch=dispatch,
+            tools=tools,
         )
     except Exception as exc:  # top-level boundary: log, audit, surface cleanly
         logging.getLogger("glean").exception("Investigation failed")
-        audit.record(
-            config.db_path,
+        auditor.record(
             mode=args.mode,
             target=args.target,
             purpose=args.purpose,
@@ -94,8 +97,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Investigation failed: {exc}", file=sys.stderr)
         return 1
 
-    audit.record(
-        config.db_path,
+    auditor.record(
         mode=args.mode,
         target=args.target,
         purpose=args.purpose,

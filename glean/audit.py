@@ -23,40 +23,47 @@ CREATE TABLE IF NOT EXISTS audit (
 """
 
 
-def init_db(db_path: str) -> None:
-    """Create the audit table if it does not exist."""
-    with closing(sqlite3.connect(db_path)) as conn:
-        conn.execute(_SCHEMA)
-        conn.commit()
+class Auditor:
+    """Records every query to the local audit log.
 
+    Initializing an Auditor creates the audit table if it does not exist.
+    Call record() for each query outcome — no separate init step required.
+    """
 
-def record(
-    db_path: str,
-    *,
-    mode: str,
-    target: str,
-    purpose: str | None,
-    steps: int,
-    status: str,
-) -> None:
-    """Append one audit row. Failures are logged, never silently swallowed."""
-    row = (
-        datetime.now(timezone.utc).isoformat(),
-        mode,
-        target,
-        purpose,
-        steps,
-        status,
-    )
-    try:
+    def __init__(self, db_path: str) -> None:
+        self._db_path = db_path
         with closing(sqlite3.connect(db_path)) as conn:
-            conn.execute(
-                "INSERT INTO audit (ts, mode, target, purpose, steps, status) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                row,
-            )
+            conn.execute(_SCHEMA)
             conn.commit()
-    except sqlite3.Error:
-        logger.exception(
-            "Failed to write audit record", extra={"mode": mode, "target": target}
+
+    def record(
+        self,
+        *,
+        mode: str,
+        target: str,
+        purpose: str | None,
+        steps: int,
+        status: str,
+    ) -> None:
+        """Append one audit row. Failures are logged, never silently swallowed."""
+        row = (
+            datetime.now(timezone.utc).isoformat(),
+            mode,
+            target,
+            purpose,
+            steps,
+            status,
         )
+        try:
+            with closing(sqlite3.connect(self._db_path)) as conn:
+                conn.execute(
+                    "INSERT INTO audit (ts, mode, target, purpose, steps, status) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    row,
+                )
+                conn.commit()
+        except sqlite3.Error:
+            logger.exception(
+                "Failed to write audit record",
+                extra={"mode": mode, "target": target},
+            )
