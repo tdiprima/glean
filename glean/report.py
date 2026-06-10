@@ -10,7 +10,7 @@ def _bullet_sources(urls: list[str]) -> str:
     return ", ".join(urls)
 
 
-def to_markdown(report: dict, *, mode: str, target: str, purpose: str | None) -> str:
+def to_markdown(report: dict, *, mode: str, target: str) -> str:
     """Build a markdown document from the report object.
 
     report must be a validated dict matching REPORT_SCHEMA — all required keys
@@ -24,8 +24,6 @@ def to_markdown(report: dict, *, mode: str, target: str, purpose: str | None) ->
         "",
         f"- **Mode:** {mode}",
     ]
-    if purpose:
-        lines.append(f"- **Stated purpose:** {purpose}")
     lines += [
         f"- **Generated:** {generated}",
         "",

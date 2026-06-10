@@ -26,11 +26,6 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         help="Investigation mode (default: company).",
     )
     parser.add_argument(
-        "--purpose",
-        default=None,
-        help="Lawful purpose. Required for person mode.",
-    )
-    parser.add_argument(
         "--output",
         default=None,
         help="Write the markdown report to this file (default: stdout).",
@@ -60,13 +55,12 @@ def main(argv: list[str] | None = None) -> int:
 
     # Ethics gate — refuse disallowed targets before any collection runs.
     try:
-        ethics.check(args.mode, args.target, args.purpose)
+        ethics.check(args.mode, args.target)
     except ethics.EthicsViolation as exc:
         print(str(exc), file=sys.stderr)
         auditor.record(
             mode=args.mode,
             target=args.target,
-            purpose=args.purpose,
             steps=0,
             status="refused",
         )
@@ -80,7 +74,6 @@ def main(argv: list[str] | None = None) -> int:
             llm,
             mode=args.mode,
             target=args.target,
-            purpose=args.purpose,
             max_steps=config.max_steps,
             dispatch=dispatch,
             tools=tools,
@@ -90,7 +83,6 @@ def main(argv: list[str] | None = None) -> int:
         auditor.record(
             mode=args.mode,
             target=args.target,
-            purpose=args.purpose,
             steps=0,
             status="error",
         )
@@ -100,14 +92,11 @@ def main(argv: list[str] | None = None) -> int:
     auditor.record(
         mode=args.mode,
         target=args.target,
-        purpose=args.purpose,
         steps=steps,
         status="ok",
     )
 
-    markdown = report.to_markdown(
-        data, mode=args.mode, target=args.target, purpose=args.purpose
-    )
+    markdown = report.to_markdown(data, mode=args.mode, target=args.target)
 
     if args.output:
         try:

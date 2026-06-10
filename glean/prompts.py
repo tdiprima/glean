@@ -36,30 +36,28 @@ Stay within public professional history, public social/web presence, public
 records, and notable public activity. Do NOT infer private/intimate details,
 home address, or live location. If results are ambiguous about identity, say so.
 
-The operator's stated purpose is: {purpose}
-
 Plan your searches, call tools as needed, then synthesize a sourced report.
 """
 
 
-def _company_base(target: str, purpose: str | None) -> str:
+def _company_base(target: str) -> str:
     return _COMPANY
 
 
-def _person_base(target: str, purpose: str | None) -> str:
-    return _PERSON.format(purpose=purpose or "(unspecified)")
+def _person_base(target: str) -> str:
+    return _PERSON
 
 
-_MODE_BUILDERS: dict[str, Callable[[str, str | None], str]] = {
+_MODE_BUILDERS: dict[str, Callable[[str], str]] = {
     "company": _company_base,
     "person": _person_base,
 }
 
 
-def system_prompt(mode: str, target: str, purpose: str | None) -> str:
+def system_prompt(mode: str, target: str) -> str:
     """Build the system prompt for the given mode and target."""
     builder = _MODE_BUILDERS.get(mode)
     if builder is None:
         raise ValueError(f"Unknown mode: {mode!r}")
-    base = builder(target, purpose)
+    base = builder(target)
     return f"{base}\n\nTarget: {target}\n{_ETHICS_LAYER}"

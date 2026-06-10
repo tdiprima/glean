@@ -1,8 +1,7 @@
 """Ethics gate. Enforced in code, not just documented.
 
-Refuses disallowed targets and purposes before any collection runs. This is a
-coarse first line of defense; the system prompt adds a second LLM-side refusal
-layer. Neither is a substitute for the operator's lawful, ethical intent.
+Refuses disallowed targets before any collection runs. This is a coarse first
+line of defense; the system prompt adds a second LLM-side refusal layer.
 """
 
 import re
@@ -33,7 +32,7 @@ _MINOR_TARGET = [
 
 
 class EthicsViolation(ValueError):
-    """Raised when a query or purpose fails the ethics gate."""
+    """Raised when a query fails the ethics gate."""
 
 
 def _matches_any(text: str, patterns: list[str]) -> str | None:
@@ -44,18 +43,15 @@ def _matches_any(text: str, patterns: list[str]) -> str | None:
     return None
 
 
-def check(mode: str, target: str, purpose: str | None) -> None:
+def check(mode: str, target: str) -> None:
     """Validate a request. Raises EthicsViolation if it must be refused.
 
-    Person mode requires a stated lawful purpose. Disallowed-intent and
-    minor-target phrasings are refused in any mode.
+    Disallowed-intent and minor-target phrasings are refused in any mode.
     """
     if not target or not target.strip():
         raise EthicsViolation("Target must not be empty.")
 
-    haystack = f"{target} {purpose or ''}"
-
-    hit = _matches_any(haystack, _DISALLOWED_INTENT)
+    hit = _matches_any(target, _DISALLOWED_INTENT)
     if hit:
         raise EthicsViolation(
             "Refused: the request appears to involve stalking, harassment, "
@@ -63,15 +59,8 @@ def check(mode: str, target: str, purpose: str | None) -> None:
             "GLEAN supports only lawful, public-source due diligence."
         )
 
-    hit = _matches_any(haystack, _MINOR_TARGET)
+    hit = _matches_any(target, _MINOR_TARGET)
     if hit:
         raise EthicsViolation(
             "Refused: GLEAN will not build a profile of a minor."
         )
-
-    if mode == "person":
-        if not purpose or len(purpose.strip()) < 8:
-            raise EthicsViolation(
-                "Person mode requires a clear lawful purpose via --purpose "
-                '(e.g. --purpose "vetting a prospective business partner").'
-            )

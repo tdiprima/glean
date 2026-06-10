@@ -16,7 +16,6 @@ CREATE TABLE IF NOT EXISTS audit (
     ts        TEXT NOT NULL,
     mode      TEXT NOT NULL,
     target    TEXT NOT NULL,
-    purpose   TEXT,
     steps     INTEGER,
     status    TEXT NOT NULL
 );
@@ -41,7 +40,6 @@ class Auditor:
         *,
         mode: str,
         target: str,
-        purpose: str | None,
         steps: int,
         status: str,
     ) -> None:
@@ -50,15 +48,14 @@ class Auditor:
             datetime.now(timezone.utc).isoformat(),
             mode,
             target,
-            purpose,
             steps,
             status,
         )
         try:
             with closing(sqlite3.connect(self._db_path)) as conn:
                 conn.execute(
-                    "INSERT INTO audit (ts, mode, target, purpose, steps, status) "
-                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO audit (ts, mode, target, steps, status) "
+                    "VALUES (?, ?, ?, ?, ?)",
                     row,
                 )
                 conn.commit()

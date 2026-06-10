@@ -59,8 +59,9 @@ python -m glean.cli "Acme Robotics" --mode company
 # Person snapshot (purpose required)
 python -m glean.cli "Jane Q. Public" \
   --mode person \
-  --purpose "vetting a prospective business partner" \
   --output report.md
+
+glean "Some Person" --mode person
 ```
 
 ## Configuration (environment variables)
@@ -90,7 +91,7 @@ schema and a `run()` function, register it, done.
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [LICENSE](LICENSE).
 
 <!-- more collectors: news API, court records, Glassdoor sentiment, LinkedIn-public -->
 

@@ -38,14 +38,13 @@ def investigate(
     *,
     mode: str,
     target: str,
-    purpose: str | None,
     max_steps: int,
     dispatch: dict,
     tools: list,
 ) -> tuple[dict, int]:
     """Run the full investigation. Returns (report_dict, steps_taken)."""
     messages: list[dict] = [
-        {"role": "system", "content": system_prompt(mode, target, purpose)},
+        {"role": "system", "content": system_prompt(mode, target)},
         {"role": "user", "content": f"Investigate: {target}"},
     ]
 
