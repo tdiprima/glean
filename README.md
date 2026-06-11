@@ -56,10 +56,8 @@ cp .env.example .env   # then add your OPENAI_API_KEY
 # Company due diligence
 python -m glean.cli "Acme Robotics" --mode company
 
-# Person snapshot (purpose required)
-python -m glean.cli "Jane Q. Public" \
-  --mode person \
-  --output report.md
+# Person snapshot
+python -m glean.cli "Jane Q. Public" --mode person --output report.md
 
 glean "Some Person" --mode person
 ```
