@@ -3,6 +3,7 @@
 import argparse
 import logging
 import sys
+import time
 
 from glean import ethics, report
 from glean.agent import investigate
@@ -69,6 +70,7 @@ def main(argv: list[str] | None = None) -> int:
     llm = LLM(api_key=config.openai_api_key, model=config.model)
     dispatch, tools = build_collectors(config)
 
+    start = time.monotonic()
     try:
         data, steps = investigate(
             llm,
@@ -78,23 +80,39 @@ def main(argv: list[str] | None = None) -> int:
             dispatch=dispatch,
             tools=tools,
         )
+    except KeyboardInterrupt:
+        duration_s = time.monotonic() - start
+        print("\nCancelled.", file=sys.stderr)
+        auditor.record(
+            mode=args.mode,
+            target=args.target,
+            steps=0,
+            status="cancelled",
+            duration_s=duration_s,
+        )
+        return 130  # standard shell convention for SIGINT
     except Exception as exc:  # top-level boundary: log, audit, surface cleanly
+        duration_s = time.monotonic() - start
         logging.getLogger("glean").exception("Investigation failed")
         auditor.record(
             mode=args.mode,
             target=args.target,
             steps=0,
             status="error",
+            duration_s=duration_s,
         )
         print(f"Investigation failed: {exc}", file=sys.stderr)
         return 1
 
+    duration_s = time.monotonic() - start
     auditor.record(
         mode=args.mode,
         target=args.target,
         steps=steps,
         status="ok",
+        duration_s=duration_s,
     )
+    print(f"Completed in {duration_s:.1f}s ({steps} steps).", file=sys.stderr)
 
     markdown = report.to_markdown(data, mode=args.mode, target=args.target)
 

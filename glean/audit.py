@@ -12,14 +12,17 @@ logger = logging.getLogger(__name__)
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS audit (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    ts        TEXT NOT NULL,
-    mode      TEXT NOT NULL,
-    target    TEXT NOT NULL,
-    steps     INTEGER,
-    status    TEXT NOT NULL
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts          TEXT NOT NULL,
+    mode        TEXT NOT NULL,
+    target      TEXT NOT NULL,
+    steps       INTEGER,
+    status      TEXT NOT NULL,
+    duration_s  REAL
 );
 """
+
+_MIGRATION_ADD_DURATION = "ALTER TABLE audit ADD COLUMN duration_s REAL"
 
 
 class Auditor:
@@ -33,6 +36,11 @@ class Auditor:
         self._db_path = db_path
         with closing(sqlite3.connect(db_path)) as conn:
             conn.execute(_SCHEMA)
+            # Add duration_s to pre-existing databases that lack the column.
+            try:
+                conn.execute(_MIGRATION_ADD_DURATION)
+            except sqlite3.OperationalError:
+                pass  # column already exists
             conn.commit()
 
     def record(
@@ -42,6 +50,7 @@ class Auditor:
         target: str,
         steps: int,
         status: str,
+        duration_s: float = 0.0,
     ) -> None:
         """Append one audit row. Failures are logged, never silently swallowed."""
         row = (
@@ -50,12 +59,13 @@ class Auditor:
             target,
             steps,
             status,
+            round(duration_s, 3),
         )
         try:
             with closing(sqlite3.connect(self._db_path)) as conn:
                 conn.execute(
-                    "INSERT INTO audit (ts, mode, target, steps, status) "
-                    "VALUES (?, ?, ?, ?, ?)",
+                    "INSERT INTO audit (ts, mode, target, steps, status, duration_s) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
                     row,
                 )
                 conn.commit()
