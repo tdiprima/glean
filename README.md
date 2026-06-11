@@ -48,6 +48,8 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env   # then add your OPENAI_API_KEY
+
+pip install -e .
 ```
 
 ## Usage
