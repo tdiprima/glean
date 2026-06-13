@@ -20,6 +20,7 @@ class Config:
     openai_api_key: str
     model: str
     github_token: str | None
+    courtlistener_token: str | None
     db_path: str
     max_steps: int
 
@@ -49,6 +50,7 @@ def load_config() -> Config:
         openai_api_key=api_key,
         model=os.environ.get("OPENAI_MODEL", "gpt-5.2").strip() or "gpt-5.2",
         github_token=(os.environ.get("GITHUB_TOKEN", "").strip() or None),
+        courtlistener_token=(os.environ.get("COURTLISTENER_TOKEN", "").strip() or None),
         db_path=os.environ.get("GLEAN_DB", "glean.db").strip() or "glean.db",
         max_steps=_require_positive_int(
             "GLEAN_MAX_STEPS", os.environ.get("GLEAN_MAX_STEPS", ""), 12

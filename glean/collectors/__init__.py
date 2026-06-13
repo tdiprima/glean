@@ -9,10 +9,10 @@ Add a collector by importing it here and adding it to _COLLECTORS and build().
 
 import functools
 
-from glean.collectors import github, web_search, whois
+from glean.collectors import court_records, github, news, web_search, whois
 from glean.config import Config
 
-_COLLECTORS = [web_search, github, whois]
+_COLLECTORS = [web_search, news, github, whois, court_records]
 
 
 def _validate_collector(module) -> None:
@@ -40,10 +40,14 @@ def build(config: Config) -> tuple[dict, list]:
 
     dispatch = {
         web_search.TOOL["function"]["name"]: web_search.run,
+        news.TOOL["function"]["name"]: news.run,
         github.TOOL["function"]["name"]: functools.partial(
             github.run, github_token=config.github_token
         ),
         whois.TOOL["function"]["name"]: whois.run,
+        court_records.TOOL["function"]["name"]: functools.partial(
+            court_records.run, courtlistener_token=config.courtlistener_token
+        ),
     }
     tools = [module.TOOL for module in _COLLECTORS]
     return dispatch, tools
